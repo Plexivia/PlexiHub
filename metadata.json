@@ -1,0 +1,6 @@
+{
+  "name": "CommerceOps - White-Label Operations Portal",
+  "description": "Client business operations portal for eCommerce company owners, administrators, and store managers with telemetry, issue tracking, and multi-tenant management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
