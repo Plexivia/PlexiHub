@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '../../stores/projectStore';
 import { useAuthStore } from '../../stores/authStore';
+import { useThresholdStore } from '../../stores/thresholdStore';
 import { dashboardService } from '../../services/dashboard.service';
 import { projectService } from '../../services/project.service';
 import { issueService } from '../../services/issue.service';
@@ -10,6 +11,8 @@ import { NetworkUsageChart } from '../../components/dashboard/NetworkUsageChart'
 import { LastDeployCard } from '../../components/dashboard/LastDeployCard';
 import { ContainerList } from '../../components/dashboard/ContainerList';
 import { RecentIssuesWidget, RecentActivityWidget } from '../../components/dashboard/RecentIssuesWidget';
+import { ThresholdConfigPanel } from '../../components/dashboard/ThresholdConfigPanel';
+import { ThresholdAlertBanner } from '../../components/dashboard/ThresholdAlertBanner';
 import { LoadingState, ErrorState } from '../../components/ui/states';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '../../components/ui/dialog';
@@ -27,6 +30,8 @@ import {
   ExternalLink,
   PlusCircle,
   BarChart3,
+  Sliders,
+  AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,6 +49,11 @@ export function DashboardPage() {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Performance Threshold Configuration Modal state
+  const [thresholdConfigOpen, setThresholdConfigOpen] = useState(false);
+  const evaluateMetrics = useThresholdStore((s) => s.evaluateMetrics);
+  const activeBreaches = useThresholdStore((s) => s.activeBreaches);
 
   // Manual Deploy Modal state
   const [deployModalOpen, setDeployModalOpen] = useState(false);
@@ -71,6 +81,11 @@ export function DashboardPage() {
       setLastDeploy(d);
       setRecentIssues(issuesData.issues);
       setRecentActivities(actData);
+
+      // Evaluate server metrics against configured performance thresholds
+      if (m) {
+        evaluateMetrics(m, currentProject.name);
+      }
     } catch (err: any) {
       if (!isBackground) {
         setError(err.message || 'Failed to fetch dashboard metrics');
@@ -88,9 +103,15 @@ export function DashboardPage() {
     const handleCollaborativeUpdate = () => {
       loadData(true);
     };
+    const handleOpenThresholds = () => {
+      setThresholdConfigOpen(true);
+    };
+
     window.addEventListener('commerceops:issue_updated', handleCollaborativeUpdate);
+    window.addEventListener('commerceops:open_threshold_panel', handleOpenThresholds);
     return () => {
       window.removeEventListener('commerceops:issue_updated', handleCollaborativeUpdate);
+      window.removeEventListener('commerceops:open_threshold_panel', handleOpenThresholds);
     };
   }, [currentProject?.id]);
 
@@ -167,7 +188,27 @@ export function DashboardPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Thresholds Configuration Panel Trigger */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setThresholdConfigOpen(true)}
+            className={`gap-1.5 text-xs rounded border transition-colors ${
+              activeBreaches.length > 0
+                ? 'border-rose-300 bg-rose-50/80 text-rose-900 hover:bg-rose-100'
+                : 'text-gray-700 hover:bg-gray-50 border-gray-300'
+            }`}
+          >
+            <Sliders className="h-3.5 w-3.5 text-blue-600" />
+            <span>Health Thresholds</span>
+            {activeBreaches.length > 0 && (
+              <span className="flex items-center justify-center rounded-full bg-rose-600 text-white px-1.5 py-0.2 text-[10px] font-bold animate-pulse">
+                {activeBreaches.length}
+              </span>
+            )}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -201,11 +242,14 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Real-time Threshold Breach Alert Banner */}
+      <ThresholdAlertBanner onOpenConfig={() => setThresholdConfigOpen(true)} />
+
       {/* Top Telemetry Metric Grid */}
       {metrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ServerStorageCard metrics={metrics} />
-          <ServerHealthCard metrics={metrics} />
+          <ServerStorageCard metrics={metrics} onOpenThresholds={() => setThresholdConfigOpen(true)} />
+          <ServerHealthCard metrics={metrics} onOpenThresholds={() => setThresholdConfigOpen(true)} />
           <NetworkUsageChart metrics={metrics} />
           {lastDeploy && <LastDeployCard deployment={lastDeploy} />}
         </div>
@@ -225,6 +269,14 @@ export function DashboardPage() {
           <RecentActivityWidget activities={recentActivities} />
         </div>
       </div>
+
+      {/* Health Performance Threshold Configuration Panel Dialog */}
+      <ThresholdConfigPanel
+        open={thresholdConfigOpen}
+        onOpenChange={setThresholdConfigOpen}
+        currentMetrics={metrics}
+        projectName={currentProject.name}
+      />
 
       {/* Trigger Deployment Modal */}
       <Dialog open={deployModalOpen} onOpenChange={setDeployModalOpen}>
