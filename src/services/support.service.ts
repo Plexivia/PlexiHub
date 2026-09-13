@@ -12,6 +12,7 @@ import {
 import { MOCK_SUPPORT_REQUESTS } from '../mocks/mockData';
 
 const STORAGE_KEY_SUPPORT = 'commerceops_support_requests';
+const STORAGE_KEY_READ_SUPPORT = 'commerceops_read_support_ids';
 
 function initializeSupportStorage() {
   if (!localStorage.getItem(STORAGE_KEY_SUPPORT)) {
@@ -32,7 +33,37 @@ function getStoredSupport(): SupportRequest[] {
 }
 
 function saveStoredSupport(requests: SupportRequest[]): void {
-  localStorage.setItem(STORAGE_KEY_SUPPORT, JSON.stringify(requests));
+  try {
+    localStorage.setItem(STORAGE_KEY_SUPPORT, JSON.stringify(requests));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('commerceops:support_updated'));
+    }
+  } catch (e) {
+    console.error('Failed to save support requests to localStorage', e);
+  }
+}
+
+function getReadSupportIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_READ_SUPPORT);
+    if (raw) {
+      return new Set(JSON.parse(raw));
+    }
+  } catch (e) {
+    console.error('Read support IDs parse error', e);
+  }
+  return new Set<string>();
+}
+
+function saveReadSupportIds(ids: Set<string>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_READ_SUPPORT, JSON.stringify(Array.from(ids)));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('commerceops:support_updated'));
+    }
+  } catch (e) {
+    console.error('Failed to save read support IDs', e);
+  }
 }
 
 export const supportService = {
@@ -94,6 +125,37 @@ export const supportService = {
 
   async getRequests(filters?: SupportFilterParams): Promise<{ requests: SupportRequest[]; total: number }> {
     return this.getSupportRequests(filters);
+  },
+
+  getUnreadRequests(): SupportRequest[] {
+    const list = getStoredSupport();
+    const readIds = getReadSupportIds();
+    // Unread requests are those not in readIds and not Closed
+    return list.filter((r) => !readIds.has(r.id) && r.status !== 'Closed');
+  },
+
+  getUnreadCount(): number {
+    return this.getUnreadRequests().length;
+  },
+
+  isRequestUnread(requestId: string): boolean {
+    const readIds = getReadSupportIds();
+    return !readIds.has(requestId);
+  },
+
+  markAsRead(requestId: string): void {
+    const readIds = getReadSupportIds();
+    if (!readIds.has(requestId)) {
+      readIds.add(requestId);
+      saveReadSupportIds(readIds);
+    }
+  },
+
+  markAllAsRead(): void {
+    const list = getStoredSupport();
+    const readIds = getReadSupportIds();
+    list.forEach((r) => readIds.add(r.id));
+    saveReadSupportIds(readIds);
   },
 
   async getSupportRequestById(requestId: string): Promise<SupportRequest | null> {

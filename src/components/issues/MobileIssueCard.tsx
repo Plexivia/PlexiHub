@@ -12,10 +12,19 @@ interface MobileIssueCardProps {
 }
 
 export function MobileIssueCard({ issue, onClick }: MobileIssueCardProps) {
+  const isCritical = issue.priority === 'Critical';
+  const isHigh = issue.priority === 'High';
+
   return (
     <div
       onClick={onClick}
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs hover:border-slate-300 active:bg-slate-50 transition-all cursor-pointer space-y-3"
+      className={`rounded-xl border p-4 shadow-2xs active:bg-slate-50 transition-all cursor-pointer space-y-3 ${
+        isCritical
+          ? 'border-rose-300 bg-rose-50/20 border-l-4 border-l-rose-600 hover:border-rose-400'
+          : isHigh
+          ? 'border-amber-300 bg-amber-50/20 border-l-4 border-l-amber-500 hover:border-amber-400'
+          : 'border-slate-200 bg-white border-l-4 border-l-transparent hover:border-slate-300'
+      }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

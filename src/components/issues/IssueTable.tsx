@@ -125,17 +125,37 @@ export function IssueTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-            {issues.map((issue) => (
-              <tr
-                key={issue.id}
-                onClick={() => onRowClick(issue)}
-                className="hover:bg-gray-50/90 cursor-pointer transition-colors group active:bg-gray-100/50"
-              >
-                <td className="py-3 px-4">
-                  <span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60 group-hover:border-blue-300">
-                    {issue.id}
-                  </span>
-                </td>
+            {issues.map((issue) => {
+              const isCritical = issue.priority === 'Critical';
+              const isHigh = issue.priority === 'High';
+
+              return (
+                <tr
+                  key={issue.id}
+                  onClick={() => onRowClick(issue)}
+                  className={`cursor-pointer transition-colors group active:bg-gray-100/50 ${
+                    isCritical
+                      ? 'bg-rose-50/50 hover:bg-rose-100/60 border-l-4 border-l-rose-500'
+                      : isHigh
+                      ? 'bg-amber-50/40 hover:bg-amber-100/50 border-l-4 border-l-amber-500'
+                      : 'hover:bg-gray-50/90 border-l-4 border-l-transparent'
+                  }`}
+                >
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded border transition-colors ${
+                          isCritical
+                            ? 'text-rose-700 bg-rose-50 border-rose-200 group-hover:border-rose-300'
+                            : isHigh
+                            ? 'text-amber-800 bg-amber-50 border-amber-200 group-hover:border-amber-300'
+                            : 'text-blue-600 bg-blue-50 border-blue-200/60 group-hover:border-blue-300'
+                        }`}
+                      >
+                        {issue.id}
+                      </span>
+                    </div>
+                  </td>
 
                 <td className="py-3 px-4">
                   <div className="flex flex-col gap-0.5">
@@ -200,7 +220,8 @@ export function IssueTable({
                   {formatRelativeTime(issue.updatedAt)}
                 </td>
               </tr>
-            ))}
+            );
+          })}
           </tbody>
         </table>
       </div>

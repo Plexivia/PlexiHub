@@ -205,7 +205,10 @@ export function SupportListPage() {
           total={total}
           filters={filters}
           onFilterChange={setFilters}
-          onRowClick={(req) => setSelectedReq(req)}
+          onRowClick={(req) => {
+            supportService.markAsRead(req.id);
+            setSelectedReq(req);
+          }}
         />
       )}
 

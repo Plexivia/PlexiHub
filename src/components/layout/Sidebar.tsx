@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Project, TenantConfig } from '../../types';
 import { cn } from '../../lib/utils';
+import { supportService } from '../../services/support.service';
 import {
   PlusCircle,
   ListTodo,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   Sparkles,
   ExternalLink,
+  Bell,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -36,6 +38,21 @@ export function Sidebar({
 }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const updateUnread = () => {
+      setUnreadCount(supportService.getUnreadRequests().length);
+    };
+    updateUnread();
+
+    window.addEventListener('commerceops:support_updated', updateUnread);
+    window.addEventListener('storage', updateUnread);
+    return () => {
+      window.removeEventListener('commerceops:support_updated', updateUnread);
+      window.removeEventListener('storage', updateUnread);
+    };
+  }, []);
 
   const handleLinkClick = () => {
     if (onNavigateMobile) onNavigateMobile();
@@ -140,7 +157,12 @@ export function Sidebar({
 
               <NavLink to="/support/list" onClick={handleLinkClick} className={navItemClass}>
                 <LifeBuoy className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-white" />
-                <span>List</span>
+                <span className="flex-1">List</span>
+                {unreadCount > 0 && (
+                  <span className="flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-600 text-white text-[9px] font-bold shadow-xs">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </NavLink>
             </div>
           </div>

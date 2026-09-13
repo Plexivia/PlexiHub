@@ -132,6 +132,30 @@ export const issueService = {
     return MOCK_USERS;
   },
 
+  async getStatusCounts(projectId?: string): Promise<{
+    all: number;
+    open: number;
+    inProgress: number;
+    resolved: number;
+    created: number;
+    waiting: number;
+    closed: number;
+  }> {
+    let list = getStoredIssues();
+    if (projectId) {
+      list = list.filter((i) => i.projectId === projectId);
+    }
+    return {
+      all: list.length,
+      open: list.filter((i) => i.status === 'Open').length,
+      inProgress: list.filter((i) => i.status === 'In Progress').length,
+      resolved: list.filter((i) => i.status === 'Resolved').length,
+      created: list.filter((i) => i.status === 'Created').length,
+      waiting: list.filter((i) => i.status === 'Waiting for Client').length,
+      closed: list.filter((i) => i.status === 'Closed').length,
+    };
+  },
+
   async createIssue(
     projectIdOrPayload: string | {
       projectId: string;
